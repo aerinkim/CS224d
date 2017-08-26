@@ -45,16 +45,16 @@ def forward_backward_prop(data, labels, params, dimensions):
     cost = np.sum( -labels * np.log(y_hat) ) 
 
     ### YOUR CODE HERE: backward propagation   
-    delta3 = y_hat - data               #(20,10)
+    delta3 = y_hat - labels               #(20,10)
     
     # gradW2 means you take the derivative of the cost function w.r.t W2.
     gradW2 = h.T.dot(delta3)          #(5,10)
-    gradb2 = np.sum(delta3)             #scalar
+    gradb2 = np.sum(delta3, axis=0)             #scalar
 
-    delta2 = delta3.dot(W2.T) * sigmoid_grad(z1)  #(20,10)
+    delta2 = delta3.dot(W2.T) * sigmoid_grad(h)  #(20,10)
 
-    gradW1 = delta2.T.dot(data)                       #()
-    gradb1 = np.sum(delta2)  
+    gradW1 = data.T.dot(delta2)                       #()
+    gradb1 = np.sum(delta2, axis=0)  
 
     ### Stack gradients (do not modify)
     grad = np.concatenate((gradW1.flatten(), gradb1.flatten(),

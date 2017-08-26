@@ -7,12 +7,12 @@ import random
 # First implement a gradient checker by filling in the following functions
 def gradcheck_naive(f, x):
 
-    #f = lambda x: (np.sum(x ** 2), x * 2)
     
     """ Gradient check for a function f
     Arguments:
-    f -- a function that takes a single argument and outputs the
-         cost and its gradients
+    f -- a function that takes a single argument and outputs the cost and its gradients
+         f = lambda params: forward_backward_prop(data, labels, params, dimensions)
+
     x -- the point (numpy array) to check the gradient at
     """
     rndstate = random.getstate()
@@ -24,13 +24,20 @@ def gradcheck_naive(f, x):
     it = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
     while not it.finished:
         ix = it.multi_index
-        # Try modifying x[ix] with h defined above to compute
-        # numerical gradients. Make sure you call random.setstate(rndstate)
-        # before calling f(x) each time. This will make it possible
-        # to test cost functions with built in randomness later.
-        
+        # Try modifying x[ix] with h defined above to compute numerical gradients. 
+        # Make sure you call random.setstate(rndstate) before calling f(x) each time. 
+        # This will make it possible to test cost functions with built in randomness later.
+       
+        x_ix = x[ix]
+        x[ix] = x_ix + h
         random.setstate(rndstate)
-        numgrad = (f(x[ix]+h)[0]-f(x[ix]-h)[0])/(2*h)
+        numgrad_plus_epsilon = f(x)[0]
+
+        x[ix] = x_ix - h
+        random.setstate(rndstate)
+        numgrad_minus_epsilon = f(x)[0]
+        x[ix] = x_ix
+        numgrad = (numgrad_plus_epsilon-numgrad_minus_epsilon)/(2.0*h)
 
         # Compare gradients
         reldiff = abs(numgrad - grad[ix]) / max(1, abs(numgrad), abs(grad[ix]))
