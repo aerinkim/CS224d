@@ -10,7 +10,7 @@ from q2_gradcheck import gradcheck_naive
 
 def forward_backward_prop(data, labels, params, dimensions):
     """
-    Forward and backward propagation for a two-layer sigmoidal network
+    Forward and backward propagation for a TWO-layer sigmoidal network
 
     Compute the forward propagation and for the cross entropy cost,
     and backward propagation for the gradients for all parameters.
@@ -36,12 +36,25 @@ def forward_backward_prop(data, labels, params, dimensions):
     b2 = np.reshape(params[ofs:ofs + Dy], (1, Dy))
 
     ### YOUR CODE HERE: forward propagation
-    raise NotImplementedError
-    ### END YOUR CODE
+    #I use the same notation as the written hw.
+    z1 = np.dot(data,W1)+b1     #(20,5)
+    h = sigmoid(z1)             #
+    z2 = np.dot(h,W2)+b2        #(20,10)
+    y_hat = softmax(z2)         #
 
-    ### YOUR CODE HERE: backward propagation
-    raise NotImplementedError
-    ### END YOUR CODE
+    cost = np.sum( -labels * np.log(y_hat) ) 
+
+    ### YOUR CODE HERE: backward propagation   
+    delta3 = y_hat - data               #(20,10)
+    
+    # gradW2 means you take the derivative of the cost function w.r.t W2.
+    gradW2 = h.T.dot(delta3)          #(5,10)
+    gradb2 = np.sum(delta3)             #scalar
+
+    delta2 = delta3.dot(W2.T) * sigmoid_grad(z1)  #(20,10)
+
+    gradW1 = delta2.T.dot(data)                       #()
+    gradb1 = np.sum(delta2)  
 
     ### Stack gradients (do not modify)
     grad = np.concatenate((gradW1.flatten(), gradb1.flatten(),
@@ -69,7 +82,9 @@ def sanity_check():
 
     gradcheck_naive(lambda params:
         forward_backward_prop(data, labels, params, dimensions), params)
-
+    #gradcheck_naive(quad, np.array(123.456))   
+    #Gradient check passed!
+    #forward_backward_prop(data, labels, params, dimensions) returns cost and grad
 
 def your_sanity_checks():
     """

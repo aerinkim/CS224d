@@ -32,7 +32,7 @@ def softmax(x):
         # Matrix
         ### YOUR CODE HERE
         x=x- x.max(axis=1).reshape(len(x.max(axis=1)),1)
-        x=np.exp(x)/np.sum(np.exp(x),axis=1)
+        x=np.exp(x)/np.sum(np.exp(x),axis=1).reshape(len(x),1)
         ### END YOUR CODE
     else:
         # Vector

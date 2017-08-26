@@ -6,6 +6,9 @@ import random
 
 # First implement a gradient checker by filling in the following functions
 def gradcheck_naive(f, x):
+
+    #f = lambda x: (np.sum(x ** 2), x * 2)
+    
     """ Gradient check for a function f
     Arguments:
     f -- a function that takes a single argument and outputs the
