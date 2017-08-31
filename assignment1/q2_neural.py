@@ -80,11 +80,12 @@ def sanity_check():
     params = np.random.randn((dimensions[0] + 1) * dimensions[1] + (
         dimensions[1] + 1) * dimensions[2], )
 
-    gradcheck_naive(lambda params:
+    gradcheck_naive(lambda params: 
         forward_backward_prop(data, labels, params, dimensions), params)
     #gradcheck_naive(quad, np.array(123.456))   
     #Gradient check passed!
     #forward_backward_prop(data, labels, params, dimensions) returns cost and grad
+
 
 def your_sanity_checks():
     """
