@@ -9,16 +9,10 @@ from q2_sigmoid import sigmoid, sigmoid_grad
 
 def normalizeRows(x):
     """ Row normalization function
-
     Implement a function that normalizes each row of a matrix to have
     unit length.
     """
-
-    ### YOUR CODE HERE
-    raise NotImplementedError
-    ### END YOUR CODE
-
-    return x
+    return x/np.sqrt(np.sum(x**2,axis=1).reshape(-1,1))
 
 
 def test_normalize_rows():
@@ -33,34 +27,35 @@ def test_normalize_rows():
 def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     """ Softmax cost function for word2vec models
 
-    Implement the cost and gradients for one predicted word vector
+    Implement the cost and gradients for *ONE* predicted word vector
     and one target word vector as a building block for word2vec
     models, assuming the softmax prediction function and cross
     entropy loss.
 
     Arguments:
     predicted -- numpy ndarray, predicted word vector (\hat{v} in
-                 the written component)
+                 the written component) -> v_hat is an input, why do you call it predicted???? (D,1)
     target -- integer, the index of the target word
-    outputVectors -- "output" vectors (as rows) for all tokens
+    outputVectors -- "output" vectors (as rows) for all tokens (V,D)
     dataset -- needed for negative sampling, unused here.
 
     Return:
-    cost -- cross entropy cost for the softmax word prediction
-    gradPred -- the gradient with respect to the predicted word
-           vector
-    grad -- the gradient with respect to all the other word
-           vectors
-
-    We will not provide starter code for this function, but feel
-    free to reference the code you previously wrote for this
-    assignment!
+    cost -- cross entropy cost for the softmax word prediction (scalar)
+    gradPred -- the gradient with respect to the predicted word vector (D,1)
+    grad -- the gradient with respect to all the other word vectors (D,V)
     """
 
-    ### YOUR CODE HERE
-    raise NotImplementedError
-    ### END YOUR CODE
+    score_numerator = np.exp(outputVectors.dot(predicted)) #(V,1)
+    score_denominator = np.sum(np.exp(outputVectors.dot(predicted))) #(scalar)
+    probability = score_numerator / score_denominator # for every word, (V,1)
 
+    cost = -np.log( probability[target] ) # the cost for the target word only. (scalar)
+    
+    probability[target] -= 1
+    # These two lines are where everyone gets lost lol.
+    gradPred = outputVectors.T.dot(probability) # (D,V)*(V,1)=(D,1) # Because it's d/dvc
+    grad = np.outer(probability,predicted) # (V,1) -outer- (D,1) = (V,D) # d/dW
+ 
     return cost, gradPred, grad
 
 
@@ -95,9 +90,18 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
     indices = [target]
     indices.extend(getNegativeSamples(target, dataset, K))
 
-    ### YOUR CODE HERE
-    raise NotImplementedError
-    ### END YOUR CODE
+
+    score_numerator = np.exp(outputVectors.dot(predicted)) #(V,1)
+    score_denominator = np.sum(np.exp(outputVectors.dot(predicted))) #(scalar)
+    probability = score_numerator / score_denominator # for every word, (V,1)
+
+    cost = -np.log( probability[target] ) # the cost for the target word only. (scalar)
+    
+    probability[target] -= 1
+    # These two lines are where everyone gets lost lol.
+    gradPred = outputVectors.T.dot(probability) # (D,V)*(V,1)=(D,1) # Because it's d/dvc
+    grad = np.outer(probability,predicted) # (V,1) -outer- (D,1) = (V,D) # d/dW
+ 
 
     return cost, gradPred, grad
 
@@ -200,8 +204,7 @@ def test_word2vec():
 
     def getRandomContext(C):
         tokens = ["a", "b", "c", "d", "e"]
-        return tokens[random.randint(0,4)], \
-            [tokens[random.randint(0,4)] for i in xrange(2*C)]
+        return tokens[random.randint(0,4)], [tokens[random.randint(0,4)] for i in xrange(2*C)]
     dataset.sampleTokenIdx = dummySampleTokenIdx
     dataset.getRandomContext = getRandomContext
 
