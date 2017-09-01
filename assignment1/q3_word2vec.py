@@ -45,7 +45,7 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     grad -- the gradient with respect to all the other word vectors (D,V)
     """
 
-    score_numerator = np.exp(outputVectors.dot(predicted)) #(V,1)
+    score_numerator = np.exp(outputVectors.dot(predicted)) # (V,D)*(D,1) = (V,1)
     score_denominator = np.sum(np.exp(outputVectors.dot(predicted))) #(scalar)
     probability = score_numerator / score_denominator # for every word, (V,1)
 
@@ -71,8 +71,7 @@ def getNegativeSamples(target, dataset, K):
     return indices
 
 
-def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
-                               K=10):
+def negSamplingCostAndGradient(predicted, target, outputVectors, dataset, K=10):
     """ Negative sampling cost function for word2vec models
 
     Implement the cost and gradients for one predicted word vector
@@ -85,24 +84,30 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
     Arguments/Return Specifications: same as softmaxCostAndGradient
     """
 
+    grad = np.zeros_like(outputVectors)
+
     # Sampling of indices is done for you. Do not modify this if you
     # wish to match the autograder and receive points!
     indices = [target]
-    indices.extend(getNegativeSamples(target, dataset, K))
+    indices.extend(getNegativeSamples(target, dataset, K)) # why did you extend? the fuck?
 
+    sampleVectors = outputVectors[indices[1:], :]
 
-    score_numerator = np.exp(outputVectors.dot(predicted)) #(V,1)
-    score_denominator = np.sum(np.exp(outputVectors.dot(predicted))) #(scalar)
-    probability = score_numerator / score_denominator # for every word, (V,1)
+    p_target_predicted = sigmoid(outputVectors[target].dot(predicted)) # (1,D) * (D,1) = scalar
+    p_k_predicted = -sigmoid(sampleVectors.dot(predicted)) # (K,D) * (D,1) = (K,1)
 
-    cost = -np.log( probability[target] ) # the cost for the target word only. (scalar)
-    
-    probability[target] -= 1
-    # These two lines are where everyone gets lost lol.
-    gradPred = outputVectors.T.dot(probability) # (D,V)*(V,1)=(D,1) # Because it's d/dvc
-    grad = np.outer(probability,predicted) # (V,1) -outer- (D,1) = (V,D) # d/dW
- 
+    cost = -np.log(p_target_predicted) -np.log(np.sum(p_k_predicted))
 
+    gradPred = (p_target_predicted - 1)*outputVectors[target] + (1-p_k_predicted).T.dot(sampleVectors)
+    # (1,D)              scalar                 (1,D)                   (K,1).T             (k,D)     
+
+    grad[target] =  (p_target_predicted - 1)*predicted
+    # (1,D)                 scalar             (1,D)  
+
+    for i in xrange(K):
+        k = indices[k+1]
+        grad[k] =  (1 - pk_predicted[k])*predicted
+        # (1,D)          scalar            (1,D)  
     return cost, gradPred, grad
 
 
