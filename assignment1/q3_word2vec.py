@@ -111,10 +111,12 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset, K=10):
     return cost, gradPred, grad
 
 
+    #How this function is called:
+    #skipgram("c", 3, ["a", "b", "e", "d", "b", "c"], dummy_tokens, dummy_vectors[:5,:], dummy_vectors[5:,:], dataset)
 def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
              dataset, word2vecCostAndGradient=softmaxCostAndGradient):
     """ Arguments:
-    currrentWord -- a string of the current center word
+    currentWord -- a string of the current center word
     C -- integer, context size
     contextWords -- list of no more than 2*C strings, the context words
     tokens -- a dictionary that maps words to their indices in
@@ -129,16 +131,27 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     cost -- the cost function value for the skip-gram model
     grad -- the gradient with respect to the word vectors
     """
-
-    cost = 0.0
+    cost = 0.0 # cost of all pairs inside of window
     gradIn = np.zeros(inputVectors.shape)
     gradOut = np.zeros(outputVectors.shape)
 
+    for i in contextWords:
+        target_index = tokens[i]
+        cost_, gradIn_, gradOut_ = word2vecCostAndGradient(inputVectors[tokens[currentWord]], target_index, outputVectors, dataset)
+        cost += cost_
+        grad_In[tokens[currentWord]] += gradIn_
+        gradOut += gradOut_
+
+    """ How cost, gradIn, gradOut are used in outer sum.
+    cost += c / batchsize / denom                # WHY? because cost function ! it divdes the cost by the number of whole vocabulary
+    grad[:N/2, :] += gi n / batchsize / denom      
+    grad[N/2:, :] += gout / batchsize / denom  
+    """
+    return cost, gradIn, gradOut 
 
 
-    return cost, gradIn, gradOut
-
-
+    #How this function is called:
+    # cbow("a", 2, ["a", "b", "c", "a"], dummy_tokens, dummy_vectors[:5,:], dummy_vectors[5:,:], dataset)
 def cbow(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
          dataset, word2vecCostAndGradient=softmaxCostAndGradient):
     """CBOW model in word2vec
@@ -157,7 +170,17 @@ def cbow(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     gradOut = np.zeros(outputVectors.shape)
 
     ### YOUR CODE HERE
-    raise NotImplementedError
+    # Create one (1) vector which is a sum of all context words (tf.reduce_sum)
+    for i in contextWords:
+        context_index = tokens[i]
+        one_context_vector += inputVectors[context_index]
+ 
+    target_index = tokens[currentWord]
+
+    cost_, gradIn_, gradOut_ = word2vecCostAndGradient(one_context_vector, target_index, outputVectors, dataset)
+    cost += cost_
+    grad_In[tokens[currentWord]] += gradIn_
+    gradOut += gradOut_
     ### END YOUR CODE
 
     return cost, gradIn, gradOut
@@ -201,8 +224,8 @@ def word2vec_sgd_wrapper(word2vecModel, tokens, wordVectors, dataset, C,
             centerword, C1, context, tokens, inputVectors, outputVectors,
             dataset, word2vecCostAndGradient)
         cost += c / batchsize / denom                # WHY? because cost function ! it divdes the cost by the number of whole vocabulary
-        grad[:N/2, :] += gin / batchsize / denom     # WHY?
-        grad[N/2:, :] += gout / batchsize / denom    # WHY?
+        grad[:N/2, :] += gin / batchsize / denom     # gin is a matrix size of N/2
+        grad[N/2:, :] += gout / batchsize / denom    # gout is a matrix size of N/2
 
     return cost, grad
 
@@ -245,8 +268,8 @@ def test_word2vec():
         dummy_vectors)
 
     print "\n=== Results ==="
-    #def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
-    #             dataset, word2vecCostAndGradient=softmaxCostAndGradient):
+    #   skipgram (currentWord, C, contextWords,
+    #   tokens,         inputVectors,        outputVectors,     dataset, word2vecCostAndGradient=softmaxCostAndGradient)
     print skipgram("c", 3, ["a", "b", "e", "d", "b", "c"], 
         dummy_tokens, dummy_vectors[:5,:], dummy_vectors[5:,:], dataset)
     print skipgram("c", 1, ["a", "b"],
