@@ -105,9 +105,9 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset, K=10):
     # (1,D)                 scalar             (1,D)  
 
     for i in xrange(K):
-        k = indices[k+1]
-        grad[k] =  (1 - pk_predicted[k])*predicted
-        # (1,D)          scalar            (1,D)  
+        k = indices[i+1]
+        grad[k] =  (1 - p_k_predicted[k])*predicted
+        # (1,D)           scalar            (1,D)  
     return cost, gradPred, grad
 
 
@@ -139,7 +139,7 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
         target_index = tokens[i]
         cost_, gradIn_, gradOut_ = word2vecCostAndGradient(inputVectors[tokens[currentWord]], target_index, outputVectors, dataset)
         cost += cost_
-        grad_In[tokens[currentWord]] += gradIn_
+        gradIn[tokens[currentWord]] += gradIn_
         gradOut += gradOut_
 
     """ How cost, gradIn, gradOut are used in outer sum.
@@ -171,6 +171,7 @@ def cbow(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
 
     ### YOUR CODE HERE
     # Create one (1) vector which is a sum of all context words (tf.reduce_sum)
+    one_context_vector = np.zeros_like(inputVectors[0])
     for i in contextWords:
         context_index = tokens[i]
         one_context_vector += inputVectors[context_index]
@@ -179,7 +180,7 @@ def cbow(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
 
     cost_, gradIn_, gradOut_ = word2vecCostAndGradient(one_context_vector, target_index, outputVectors, dataset)
     cost += cost_
-    grad_In[tokens[currentWord]] += gradIn_
+    gradIn[tokens[currentWord]] += gradIn_
     gradOut += gradOut_
     ### END YOUR CODE
 
