@@ -6,8 +6,6 @@ import random
 
 # First implement a gradient checker by filling in the following functions
 def gradcheck_naive(f, x):
-
-    
     """ Gradient check for a function f
     Arguments:
     f -- a function that takes a single argument and outputs the cost and its gradients

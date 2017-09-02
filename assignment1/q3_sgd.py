@@ -39,9 +39,6 @@ def save_params(iter, params):
 def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False,
         PRINT_EVERY=10):
     """ Stochastic Gradient Descent
-
-    Implement the stochastic gradient descent method in this function.
-
     Arguments:
     f -- the function to optimize, it should take a single
          argument and yield two outputs, a cost and the gradient
@@ -132,7 +129,6 @@ def your_sanity_checks():
     """
     print "Running your sanity checks..."
     ### YOUR CODE HERE
-    raise NotImplementedError
     ### END YOUR CODE
 
 

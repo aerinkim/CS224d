@@ -113,11 +113,7 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset, K=10):
 
 def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
              dataset, word2vecCostAndGradient=softmaxCostAndGradient):
-    """ Skip-gram model in word2vec
-
-    Implement the skip-gram model in this function.
-
-    Arguments:
+    """ Arguments:
     currrentWord -- a string of the current center word
     C -- integer, context size
     contextWords -- list of no more than 2*C strings, the context words
@@ -129,7 +125,6 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
                                a prediction vector given the target
                                word vectors, could be one of the two
                                cost functions you implemented above.
-
     Return:
     cost -- the cost function value for the skip-gram model
     grad -- the gradient with respect to the word vectors
@@ -139,9 +134,7 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     gradIn = np.zeros(inputVectors.shape)
     gradOut = np.zeros(outputVectors.shape)
 
-    ### YOUR CODE HERE
-    raise NotImplementedError
-    ### END YOUR CODE
+
 
     return cost, gradIn, gradOut
 
@@ -180,23 +173,36 @@ def word2vec_sgd_wrapper(word2vecModel, tokens, wordVectors, dataset, C,
     cost = 0.0
     grad = np.zeros(wordVectors.shape)
     N = wordVectors.shape[0]
-    inputVectors = wordVectors[:N/2,:]
+    inputVectors = wordVectors[:N/2,:] # Why N/2? Because N is concatenation of input vector & output vector. We train 2 vectors (input/output) for one word.
     outputVectors = wordVectors[N/2:,:]
     for i in xrange(batchsize):
-        C1 = random.randint(1,C)
+        C1 = random.randint(1,C) # set the context size as a random number
         centerword, context = dataset.getRandomContext(C1)
+        """
+        In [231]: getRandomContext(3)
+        Out[231]: ('d', ['d', 'e', 'e', 'b', 'e', 'c']) # generating psuedo sentence like: devil egg eats behind ET cat.
+
+        In [232]: getRandomContext(2)
+        Out[232]: ('d', ['e', 'b', 'c', 'd'])
+
+        In [233]: getRandomContext(1)
+        Out[233]: ('d', ['b', 'e'])
+        """
 
         if word2vecModel == skipgram:
             denom = 1
         else:
-            denom = 1
+            denom = 1 # if it's CBOW then changes denom to what???
 
+    #   c, gin, gout = skipgram
+    #      (currentWord, C, contextWords, tokens, inputVectors, outputVectors,
+    #        dataset, word2vecCostAndGradient=softmaxCostAndGradient):
         c, gin, gout = word2vecModel(
             centerword, C1, context, tokens, inputVectors, outputVectors,
             dataset, word2vecCostAndGradient)
-        cost += c / batchsize / denom
-        grad[:N/2, :] += gin / batchsize / denom
-        grad[N/2:, :] += gout / batchsize / denom
+        cost += c / batchsize / denom                # WHY? because cost function ! it divdes the cost by the number of whole vocabulary
+        grad[:N/2, :] += gin / batchsize / denom     # WHY?
+        grad[N/2:, :] += gout / batchsize / denom    # WHY?
 
     return cost, grad
 
@@ -218,9 +224,15 @@ def test_word2vec():
     dummy_vectors = normalizeRows(np.random.randn(10,3))
     dummy_tokens = dict([("a",0), ("b",1), ("c",2),("d",3),("e",4)])
     print "==== Gradient check for skip-gram ===="
+    # Where is vec?
     gradcheck_naive(lambda vec: word2vec_sgd_wrapper(
         skipgram, dummy_tokens, vec, dataset, 5, softmaxCostAndGradient),
         dummy_vectors)
+    #                           word2vec_sgd_wrapper
+    #(word2vecModel, tokens, wordVectors, dataset, C,
+    #                     word2vecCostAndGradient=softmaxCostAndGradient)
+    
+
     gradcheck_naive(lambda vec: word2vec_sgd_wrapper(
         skipgram, dummy_tokens, vec, dataset, 5, negSamplingCostAndGradient),
         dummy_vectors)
@@ -233,7 +245,9 @@ def test_word2vec():
         dummy_vectors)
 
     print "\n=== Results ==="
-    print skipgram("c", 3, ["a", "b", "e", "d", "b", "c"],
+    #def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
+    #             dataset, word2vecCostAndGradient=softmaxCostAndGradient):
+    print skipgram("c", 3, ["a", "b", "e", "d", "b", "c"], 
         dummy_tokens, dummy_vectors[:5,:], dummy_vectors[5:,:], dataset)
     print skipgram("c", 1, ["a", "b"],
         dummy_tokens, dummy_vectors[:5,:], dummy_vectors[5:,:], dataset,
