@@ -28,7 +28,8 @@ def gradcheck_naive(f, x):
        
         x_ix = x[ix]
         x[ix] = x_ix + h
-        random.setstate(rndstate)
+        random.setstate(rndstate) # since the negative sampling algorithm depends on random number generation.
+
         numgrad_plus_epsilon = f(x)[0]
 
         x[ix] = x_ix - h

@@ -156,16 +156,9 @@ def cbow(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
          dataset, word2vecCostAndGradient=softmaxCostAndGradient):
     """CBOW model in word2vec
 
-    Implement the continuous bag-of-words model in this function.
-
     Arguments/Return specifications: same as the skip-gram model
 
-    Extra credit: Implementing CBOW is optional, but the gradient
-    derivations are not. If you decide not to implement CBOW, remove
-    the NotImplementedError.
     """
-
-    cost = 0.0
     gradIn = np.zeros(inputVectors.shape)
     gradOut = np.zeros(outputVectors.shape)
 
@@ -175,12 +168,17 @@ def cbow(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     for i in contextWords:
         context_index = tokens[i]
         one_context_vector += inputVectors[context_index]
- 
+    
+    one_context_vector = 1.0/(2*C)*one_context_vector
     target_index = tokens[currentWord]
 
-    cost_, gradIn_, gradOut_ = word2vecCostAndGradient(one_context_vector, target_index, outputVectors, dataset)
-    cost += cost_
-    gradIn[tokens[currentWord]] += gradIn_
+    cost, gradIn_, gradOut_ = word2vecCostAndGradient(one_context_vector, target_index, outputVectors, dataset)
+
+    gradIn = np.zeros(inputVectors.shape)
+   
+    for word in zip(contextWords): 
+        gradIn[tokens[word[0]]] += gradIn_ / (2*C)
+
     gradOut += gradOut_
     ### END YOUR CODE
 
@@ -189,7 +187,7 @@ def cbow(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
 
 #############################################
 # Testing functions below. DO NOT MODIFY!   #
-#############################################
+############### ##############################
 
 def word2vec_sgd_wrapper(word2vecModel, tokens, wordVectors, dataset, C,
                          word2vecCostAndGradient=softmaxCostAndGradient):
@@ -216,7 +214,7 @@ def word2vec_sgd_wrapper(word2vecModel, tokens, wordVectors, dataset, C,
         if word2vecModel == skipgram:
             denom = 1
         else:
-            denom = 1 # if it's CBOW then changes denom to what???
+            denom = 1 # Why does this line
 
     #   c, gin, gout = skipgram
     #      (currentWord, C, contextWords, tokens, inputVectors, outputVectors,
@@ -255,8 +253,6 @@ def test_word2vec():
     #                           word2vec_sgd_wrapper
     #(word2vecModel, tokens, wordVectors, dataset, C,
     #                     word2vecCostAndGradient=softmaxCostAndGradient)
-    
-
     gradcheck_naive(lambda vec: word2vec_sgd_wrapper(
         skipgram, dummy_tokens, vec, dataset, 5, negSamplingCostAndGradient),
         dummy_vectors)
