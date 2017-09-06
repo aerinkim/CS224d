@@ -38,7 +38,7 @@ def save_params(iter, params):
 
 def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False,
         PRINT_EVERY=10):
-    """ Stochastic Gradient Descent
+    """ 
     Arguments:
     f -- the function to optimize, it should take a single
          argument and yield two outputs, a cost and the gradient
@@ -71,7 +71,7 @@ def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False,
 
     x = x0
 
-    if not postprocessing:
+    if not postprocessing:  
         postprocessing = lambda x: x
 
     expcost = None
@@ -82,7 +82,9 @@ def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False,
 
         cost = None
         ### YOUR CODE HERE
-        raise NotImplementedError
+        cost, grad = f(x)
+        x = x - step * grad  
+        x = postprocessing(x)
         ### END YOUR CODE
 
         if iter % PRINT_EVERY == 0:
