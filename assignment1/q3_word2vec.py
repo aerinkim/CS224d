@@ -24,6 +24,18 @@ def test_normalize_rows():
     print ""
 
 
+def getNegativeSamples(target, dataset, K):
+    """ Samples K indexes which are not the target """
+
+    indices = [None] * K
+    for k in xrange(K):
+        newidx = dataset.sampleTokenIdx()
+        while newidx == target:
+            newidx = dataset.sampleTokenIdx()
+        indices[k] = newidx
+    return indices
+
+
 def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     """ Softmax cost function for word2vec models
 
@@ -42,7 +54,7 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     Return:
     cost -- cross entropy cost for the softmax word prediction (scalar)
     gradPred -- the gradient with respect to the predicted word vector (D,1)
-    grad -- the gradient with respect to all the other word vectors (D,V)
+    grad -- the gradient with respect to ***ALL OTHER*** word vectors (D,V)
     """
 
     score_numerator = np.exp(outputVectors.dot(predicted)) # (V,D)*(D,1) = (V,1)
@@ -50,65 +62,48 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     probability = score_numerator / score_denominator # for every word, (V,1)
 
     cost = -np.log( probability[target] ) # the cost for the target word only. (scalar)
-    
     probability[target] -= 1
-    # These two lines are where everyone gets lost lol.
-    gradPred = outputVectors.T.dot(probability) # (D,V)*(V,1)=(D,1) # Because it's d/dvc
-    grad = np.outer(probability,predicted) # (V,1) -outer- (D,1) = (V,D) # d/dW
- 
+
+    # Below two lines are where everyone gets lost lol.
+    gradPred = outputVectors.T.dot(probability) # (D,V)*(V,1)=(D,1) # d/dVc
+    grad = np.outer(probability,predicted) # (V,1) -outer- (D,1) = (V,D) # d/dVo
+
     return cost, gradPred, grad
-
-
-def getNegativeSamples(target, dataset, K):
-    """ Samples K indexes which are not the target """
-
-    indices = [None] * K
-    for k in xrange(K):
-        newidx = dataset.sampleTokenIdx()
-        while newidx == target:
-            newidx = dataset.sampleTokenIdx()
-        indices[k] = newidx
-    return indices
-
+    #               (D,1)  (D,V)
 
 def negSamplingCostAndGradient(predicted, target, outputVectors, dataset, K=10):
     """ Negative sampling cost function for word2vec models
-
+    
     Implement the cost and gradients for one predicted word vector
     and one target word vector as a building block for word2vec
-    models, using the negative sampling technique. K is the sample
-    size.
+    models, using the negative sampling technique. K is the sample size.
 
-    Note: See test_word2vec below for dataset's initialization.
+    Note: See test_word2vec below for dataset's initialization."""
 
-    Arguments/Return Specifications: same as softmaxCostAndGradient
-    """
-
-    grad = np.zeros_like(outputVectors)
-
-    # Sampling of indices is done for you. Do not modify this if you
-    # wish to match the autograder and receive points!
+    # Sampling of indices is done for you. Do not modify this if you wish to match the autograder and receive points!
     indices = [target]
-    indices.extend(getNegativeSamples(target, dataset, K)) # why did you extend? the fuck?
+    indices.extend(getNegativeSamples(target, dataset, K)) # I don't understand why they extend but let's move on.
 
-    sampleVectors = outputVectors[indices[1:], :]
+    grad           = np.zeros_like(outputVectors) # (V,D)
+    sampledVectors = np.zeros_like(outputVectors) # (V,D)
+    for i in indices[1:]:
+        sampledVectors[i] += outputVectors[i]
 
-    p_target_predicted = sigmoid(outputVectors[target].dot(predicted)) # (1,D) * (D,1) = scalar
-    p_k_predicted = -sigmoid(sampleVectors.dot(predicted)) # (K,D) * (D,1) = (K,1)
+    p_target_predicted = sigmoid(outputVectors[target].dot(predicted)) # (1,D)*(D,1)=scalar
+    p_k_predicted = sigmoid(-sampledVectors.dot(predicted)) # (V,D)*(D,1)=(V,1)
+    cost = -np.log(p_target_predicted) +np.log(-np.sum(p_k_predicted))
 
-    cost = -np.log(p_target_predicted) -np.log(np.sum(p_k_predicted))
+    gradPred = (p_target_predicted - 1)*outputVectors[target] + (1-p_k_predicted).T.dot(sampledVectors)
+    # (1,D)              scalar                 (1,D)                   (V,1).T             (V,D)     
 
-    gradPred = (p_target_predicted - 1)*outputVectors[target] + (1-p_k_predicted).T.dot(sampleVectors)
-    # (1,D)              scalar                 (1,D)                   (K,1).T             (k,D)     
-
-    grad[target] =  (p_target_predicted - 1)*predicted
-    # (1,D)                 scalar             (1,D)  
-
-    for i in xrange(K):
+    grad[target] = (p_target_predicted - 1)*predicted - (1-p_target_predicted)*predicted
+    # (1,D)              scalar                 (1,D)                   scalar       (1,D)         
+    for i in xrange(K): # grad for ALL OTHER WORDS (including k)
         k = indices[i+1]
-        grad[k] =  (1 - p_k_predicted[k])*predicted
-        # (1,D)           scalar            (1,D)  
+        grad[k] +=  (1 - p_k_predicted[k])*predicted
+        # (D,1)           scalar            (D,1)  
     return cost, gradPred, grad
+    #               (1,D)  (V,D)
 
 
     #How this function is called:
@@ -129,11 +124,12 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
                                cost functions you implemented above.
     Return:
     cost -- the cost function value for the skip-gram model
-    grad -- the gradient with respect to the word vectors
+    gradIn -- (inputVectors.shape)
+    gradOut -- (outputVectors.shape)
     """
     cost = 0.0 # cost of all pairs inside of window
-    gradIn = np.zeros(inputVectors.shape)
-    gradOut = np.zeros(outputVectors.shape)
+    gradIn = np.zeros(inputVectors.shape)   #(V,D)
+    gradOut = np.zeros(outputVectors.shape) #(V,D)
 
     for i in contextWords:
         target_index = tokens[i]
@@ -142,9 +138,9 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
         gradIn[tokens[currentWord]] += gradIn_
         gradOut += gradOut_
 
-    """ How cost, gradIn, gradOut are used in outer sum.
-    cost += c / batchsize / denom                # WHY? because cost function ! it divdes the cost by the number of whole vocabulary
-    grad[:N/2, :] += gi n / batchsize / denom      
+    """ How our return values are used in the outer sum.
+    cost += c / batchsize / denom               # WHY? Look at the cost function. It divides (averages) the cost by the number of whole vocabulary.
+    grad[:N/2, :] += gin / batchsize0 / denom      
     grad[N/2:, :] += gout / batchsize / denom  
     """
     return cost, gradIn, gradOut 
@@ -155,9 +151,7 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
 def cbow(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
          dataset, word2vecCostAndGradient=softmaxCostAndGradient):
     """CBOW model in word2vec
-
     Arguments/Return specifications: same as the skip-gram model
-
     """
     gradIn = np.zeros(inputVectors.shape)
     gradOut = np.zeros(outputVectors.shape)
@@ -210,11 +204,10 @@ def word2vec_sgd_wrapper(word2vecModel, tokens, wordVectors, dataset, C,
         In [233]: getRandomContext(1)
         Out[233]: ('d', ['b', 'e'])
         """
-
         if word2vecModel == skipgram:
             denom = 1
         else:
-            denom = 1 # Why does this line
+            denom = 1 # Why do we need this line?
 
     #   c, gin, gout = skipgram
     #      (currentWord, C, contextWords, tokens, inputVectors, outputVectors,

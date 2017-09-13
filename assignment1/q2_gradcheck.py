@@ -3,7 +3,6 @@
 import numpy as np
 import random
 
-
 # First implement a gradient checker by filling in the following functions
 def gradcheck_naive(f, x):
     """ Gradient check for a function f
@@ -29,7 +28,6 @@ def gradcheck_naive(f, x):
         x_ix = x[ix]
         x[ix] = x_ix + h
         random.setstate(rndstate) # since the negative sampling algorithm depends on random number generation.
-
         numgrad_plus_epsilon = f(x)[0]
 
         x[ix] = x_ix - h
