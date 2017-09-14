@@ -91,12 +91,12 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset, K=10):
 
     p_target_predicted = sigmoid(outputVectors[target].dot(predicted)) # (1,D)*(D,1)=scalar
     p_k_predicted = sigmoid(-sampledVectors.dot(predicted)) # (V,D)*(D,1)=(V,1)
-    cost = -np.log(p_target_predicted) +np.log(-np.sum(p_k_predicted))
+    cost = -np.log(p_target_predicted) - np.sum(np.log(p_k_predicted))
 
     gradPred = (p_target_predicted - 1)*outputVectors[target] + (1-p_k_predicted).T.dot(sampledVectors)
     # (1,D)              scalar                 (1,D)                   (V,1).T             (V,D)     
 
-    grad[target] = (p_target_predicted - 1)*predicted - (1-p_target_predicted)*predicted
+    grad[target] = (p_target_predicted - 1)*predicted    #- (1-p_target_predicted)*predicted <<- commented out because it goes 0
     # (1,D)              scalar                 (1,D)                   scalar       (1,D)         
     for i in xrange(K): # grad for ALL OTHER WORDS (including k)
         k = indices[i+1]
