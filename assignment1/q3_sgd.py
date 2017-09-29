@@ -36,8 +36,7 @@ def save_params(iter, params):
         pickle.dump(random.getstate(), f)
 
 
-def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False,
-        PRINT_EVERY=10):
+def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False, PRINT_EVERY=10):
     """ 
     Arguments:
     f -- the function to optimize, it should take a single
@@ -82,7 +81,7 @@ def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False,
         cost = None
         ### YOUR CODE HERE
         _, grad = f(x)
-        x = x - (step * grad)
+        x = x - (step * grad) # there is no dot product like vanila GD!
         x = postprocessing(x)
         ### END YOUR CODE
 
