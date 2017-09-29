@@ -2,9 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 def softmax(x):
-  """
-  Compute the softmax function in tensorflow.
-
+  """ 
   You might find the tensorflow functions tf.exp, tf.reduce_max,
   tf.reduce_sum, tf.expand_dims useful. (Many solutions are possible, so you may
   not need to use all of these functions). Recall also that many common
@@ -22,7 +20,8 @@ def softmax(x):
   """
 
   ### YOUR CODE HERE
-  raise NotImplementedError
+  x -= tf.reduce_max(x, axis=1, keep_dims=True)
+  out = tf.exp(x)/tf.reduce_sum(tf.exp(x), axis = 1, keep_dims=True)
   ### END YOUR CODE
   
   return out 
@@ -38,9 +37,6 @@ def cross_entropy_loss(y, yhat):
   The functions tf.to_float, tf.reduce_sum, and tf.log might prove useful. (Many
   solutions are possible, so you may not need to use all of these functions).
 
-  Note: You are NOT allowed to use the tensorflow built-in cross-entropy
-        functions.
-
   Args:
     y:    tf.Tensor with shape (n_samples, n_classes). One-hot encoded.
     yhat: tf.Tensorwith shape (n_sample, n_classes). Each row encodes a
@@ -50,7 +46,7 @@ def cross_entropy_loss(y, yhat):
           tensor in the problem.
   """
   ### YOUR CODE HERE
-  raise NotImplementedError
+  out = - tf.reduce_sum(  tf.log(yhat) * tf.to_float(y) )
   ### END YOUR CODE
   return out
 
@@ -65,6 +61,7 @@ def test_softmax_basic():
       np.array([[1001,1002],[3,4]]), dtype=tf.float32))
   with tf.Session():
       test1 = test1.eval()
+      print test1
   assert np.amax(np.fabs(test1 - np.array(
       [0.26894142,  0.73105858]))) <= 1e-6
 
