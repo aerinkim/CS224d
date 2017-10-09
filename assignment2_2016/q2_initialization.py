@@ -19,12 +19,13 @@ def xavier_weight_init():
       out: tf.Tensor of specified shape sampled from Xavier distribution.
     """
     ### YOUR CODE HERE
-    m = shape[0]
-    if len(shape)>1:
-      n = shape[1]
-    else:
-      n = 0
-    out = tf.random_uniform(shape, minval = -np.sqrt(6)/np.sqrt(m+n), maxval = np.sqrt(6)/np.sqrt(m+n))
+    with tf.variable_scope("xavier_initializer") as _xavier_initializer:
+      m = shape[0]
+      if len(shape)>1:
+        n = shape[1]
+      else:
+        n = 0
+      out = tf.random_uniform(shape, minval = -np.sqrt(6)/np.sqrt(m+n), maxval = np.sqrt(6)/np.sqrt(m+n))
     ### END YOUR CODE
     return out
   # Returns defined initializer function.
