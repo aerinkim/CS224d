@@ -13,7 +13,6 @@ from model import LanguageModel
 
 class Config(object):
   """Holds model hyperparams and data information.
-
   The config class is used to store various hyperparameters and dataset
   information parameters. Model objects are passed a Config() object at
   instantiation.
@@ -31,7 +30,6 @@ class Config(object):
 
 class NERModel(LanguageModel):
   """Implements a NER (Named Entity Recognition) model.
-
   This class implements a deep network for named entity recognition. It
   inherits from LanguageModel, which has an add_embedding method in addition to
   the standard Model method.
@@ -92,24 +90,21 @@ class NERModel(LanguageModel):
     (Don't change the variable names)
     """
     ### YOUR CODE HERE
-    raise NotImplementedError
+    self.input_placeholder = tf.placeholder(tf.int32, shape = (None, self.config.window_size), name = "Input")
+    self.labels_placeholder = tf.placeholder(tf.float32, shape = (None, self.config.label_size), name = "Target") 
+    self.dropout_placeholder = tf.placeholder(tf.float32, name = "Dropout") # scalar
     ### END YOUR CODE
 
   def create_feed_dict(self, input_batch, dropout, label_batch=None):
     """Creates the feed_dict for softmax classifier.
-
     A feed_dict takes the form of:
-
     feed_dict = {
         <placeholder>: <tensor of values to be passed for placeholder>,
         ....
     }
-
-
     Hint: The keys for the feed_dict should be a subset of the placeholder
           tensors created in add_placeholders.
     Hint: When label_batch is None, don't add a labels entry to the feed_dict.
-    
     Args:
       input_batch: A batch of input data.
       label_batch: A batch of label data.
@@ -117,7 +112,11 @@ class NERModel(LanguageModel):
       feed_dict: The feed dictionary mapping from placeholders to values.
     """
     ### YOUR CODE HERE
-    raise NotImplementedError
+    feed_dict = {self.input_placeholder: input_batch}
+    if label_batch is not None:
+      feed_dict[self.labels_placeholder] = label_batch
+    if dropout is not None:
+      feed_dict[self.dropout_placeholder] = dropout
     ### END YOUR CODE
     return feed_dict
 
@@ -135,11 +134,10 @@ class NERModel(LanguageModel):
     Hint: This layer should use the input_placeholder to index into the
           embedding.
     Hint: You might find tf.nn.embedding_lookup useful.
-    Hint: See following link to understand what -1 in a shape means.
+    Hint: See following link to understand what -1 in a shape means.  -> FLATTENS!
       https://www.tensorflow.org/versions/r0.8/api_docs/python/array_ops.html#reshape
     Hint: Check the last slide from the TensorFlow lecture.
     Hint: Here are the dimensions of the variables you will need to create:
-
       L: (len(self.wv), embed_size)
 
     Returns:
@@ -148,7 +146,10 @@ class NERModel(LanguageModel):
     # The embedding lookup is currently only implemented for the CPU
     with tf.device('/cpu:0'):
       ### YOUR CODE HERE
-      raise NotImplementedError
+      embeddings = tf.Variable(
+       tf.random_uniform([len(self.wv), self.config.embed_size], -1.0, 1.0))
+      window = tf.nn.embedding_lookup(embeddings, self.input_placeholder)
+      window = tf.reshape(window, [-1, self.config.window_size * self.config.embed_size])
       ### END YOUR CODE
       return window
 
@@ -159,20 +160,21 @@ class NERModel(LanguageModel):
           another variable_scope (e.g. "Softmax") for the linear transformation
           preceding the softmax. Make sure to use the xavier_weight_init you
           defined in the previous part to initialize weights.
+
     Hint: Make sure to add in regularization and dropout to this network.
-          Regularization should be an addition to the cost function, while
-          dropout should be added after both variable scopes.
-    Hint: You might consider using a tensorflow Graph Collection (e.g
-          "total_loss") to collect the regularization and loss terms (which you
+          Regularization should be an addition to the cost function, (ADD TO THE GRAPH!!)
+          while dropout should be added after both variable scopes.
+
+    Hint: You might consider using a tensorflow Graph Collection (e.g"total_loss")
+          to collect the regularization and loss terms (which you
           will add in add_loss_op below).
+
     Hint: Here are the dimensions of the various variables you will need to
           create
-
           W:  (window_size*embed_size, hidden_size)
           b1: (hidden_size,)
           U:  (hidden_size, label_size)
           b2: (label_size)
-
     https://www.tensorflow.org/versions/r0.7/api_docs/python/framework.html#graph-collections
     Args:
       window: tf.Tensor of shape (-1, window_size*embed_size)
@@ -180,9 +182,24 @@ class NERModel(LanguageModel):
       output: tf.Tensor of shape (batch_size, label_size)
     """
     ### YOUR CODE HERE
-    raise NotImplementedError
+    with tf.variable_scope("Layer") as layer_scope:
+      W = tf.get_variable("W", [self.config.window_size*self.config.embed_size, self.config.hidden_size], dtype=tf.float32, initializer = xavier_weight_init())
+      b1 = tf.get_variable("b1", [self.config.hidden_size], dtype=tf.float32, initializer = xavier_weight_init())
+      h1 = tf.tanh(tf.matmul( window, W ) + b1)
+      h1 = tf.nn.dropout(h1, self.dropout_placeholder)
+
+    with tf.variable_scope("Softmax") as softmax_scope:
+      U = tf.get_variable("U", [self.config.hidden_size, self.config.label_size], dtype=tf.float32, initializer = xavier_weight_init())
+      b2 = tf.get_variable("b2", [self.config.label_size], dtype=tf.float32, initializer = xavier_weight_init())
+      output = tf.nn.softmax(tf.matmul( h1, U ) + b2)
+      output = tf.nn.dropout(output, self.dropout_placeholder)
+
+    l2_loss = self.config.l2 * tf.nn.l2_loss(W) + self.config.l2 * tf.nn.l2_loss(U)
+    tf.add_to_collection("total_loss", l2_loss)
+
     ### END YOUR CODE
     return output 
+
 
   def add_loss_op(self, y):
     """Adds cross_entropy_loss ops to the computational graph.
@@ -195,31 +212,31 @@ class NERModel(LanguageModel):
       loss: A 0-d tensor (scalar)
     """
     ### YOUR CODE HERE
-    raise NotImplementedError
+    cross_entropy = tf.reduce_mean(
+        tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=self.labels_placeholder))
+    tf.add_to_collection('total_loss', cross_entropy)
+    loss = tf.add_n(tf.get_collection('total_loss'))
+
     ### END YOUR CODE
     return loss
 
   def add_training_op(self, loss):
     """Sets up the training Ops.
-
     Creates an optimizer and applies the gradients to all trainable variables.
     The Op returned by this function is what must be passed to the
     `sess.run()` call to cause the model to train. See 
-
     https://www.tensorflow.org/versions/r0.7/api_docs/python/train.html#Optimizer
-
     for more information.
-
     Hint: Use tf.train.AdamOptimizer for this model.
           Calling optimizer.minimize() will return a train_op object.
-
-    Args:
+    Args: 
       loss: Loss tensor, from cross_entropy_loss.
     Returns:
       train_op: The Op for training.
     """
     ### YOUR CODE HERE
-    raise NotImplementedError
+    optimizer = tf.train.AdamOptimizer(self.config.lr)
+    train_op = optimizer.minimize(loss)
     ### END YOUR CODE
     return train_op
 
@@ -272,7 +289,7 @@ class NERModel(LanguageModel):
     """Make predictions from the provided model."""
     # If y is given, the loss is also calculated
     # We deactivate dropout by setting it to 1
-    dp = 1
+    dp = 1.0
     losses = []
     results = []
     if np.any(y):

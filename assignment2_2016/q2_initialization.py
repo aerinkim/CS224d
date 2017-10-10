@@ -21,11 +21,9 @@ def xavier_weight_init():
     ### YOUR CODE HERE
     with tf.variable_scope("xavier_initializer") as _xavier_initializer:
       m = shape[0]
-      if len(shape)>1:
-        n = shape[1]
-      else:
-        n = 0
-      out = tf.random_uniform(shape, minval = -np.sqrt(6)/np.sqrt(m+n), maxval = np.sqrt(6)/np.sqrt(m+n))
+      n = shape[1] if len(shape)>1 else shape[0]
+      epsilon = np.sqrt(6)/np.sqrt(m+n)
+      out = tf.random_uniform(shape, minval = -epsilon, maxval = epsilon)
     ### END YOUR CODE
     return out
   # Returns defined initializer function.
